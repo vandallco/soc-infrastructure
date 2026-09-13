@@ -1,0 +1,39 @@
+filebeat.inputs:
+  - type: filestream
+    id: suricata-eve
+    paths:
+      - /var/log/suricata/eve.json
+    parsers:
+      - ndjson:
+          target: "suricata"
+          overwrite_keys: true
+    fields:
+      source_type: suricata:eve
+      sourcetype: suricata:eve
+
+  - type: container
+    id: docker-containers
+    paths:
+      - /var/lib/docker/containers/*/*.log
+    fields:
+      source_type: docker
+
+processors:
+  - add_host_metadata: {}
+  - add_docker_metadata: ~
+  - drop_fields:
+      fields: ["agent.ephemeral_id", "ecs.version"]
+      ignore_missing: true
+
+output.http:
+  hosts: ["${SPLUNK_HEC_URL}"]
+  path: "/services/collector/event"
+  ssl.verification_mode: none
+  headers:
+    Authorization: "Splunk ${SPLUNK_HEC_TOKEN}"
+    Content-Type: "application/json"
+  codec.format:
+    string: '{"time": %{[@timestamp]}, "host": "%{[host.name]}", "sourcetype": "%{[fields.sourcetype]}", "index": "soc_suricata", "event": %{[message]}}'
+
+logging.level: info
+logging.to_stderr: true

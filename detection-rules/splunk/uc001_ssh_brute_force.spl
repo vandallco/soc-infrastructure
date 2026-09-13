@@ -1,0 +1,6 @@
+index=soc_endpoints sourcetype=linux:auth status=Failed
+| bin _time span=5m
+| stats count dc(user) as unique_users values(user) as users by _time src_ip host
+| where count >= 10
+| eval mitre_technique="T1110.001", severity="high"
+| eval alert_id=printf("UC-001-%s-%s", strftime(_time,"%Y%m%d%H%M"), src_ip)

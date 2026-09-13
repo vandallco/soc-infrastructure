@@ -1,0 +1,31 @@
+title: PowerShell EncodedCommand (SOC Lab UC-003)
+id: 9f2b3d1a-1111-4c4c-8888-000000000003
+status: stable
+description: Detects execution of powershell.exe / pwsh.exe with encoded / base64 command.
+author: SOC Lab
+date: 2026/09/01
+references:
+  - https://attack.mitre.org/techniques/T1059/001/
+logsource:
+  product: windows
+  service: sysmon
+  category: process_creation
+detection:
+  selection_img:
+    Image|endswith:
+      - '\powershell.exe'
+      - '\pwsh.exe'
+  selection_cmd:
+    CommandLine|contains:
+      - '-EncodedCommand'
+      - ' -enc '
+      - 'FromBase64String'
+      - 'Invoke-Expression'
+      - 'IEX('
+  condition: selection_img and selection_cmd
+level: high
+tags:
+  - attack.execution
+  - attack.t1059.001
+falsepositives:
+  - Legitimate admin scripts

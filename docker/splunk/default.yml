@@ -1,0 +1,33 @@
+# Splunk defaults (ansible-splunk) — configuración inicial del contenedor
+---
+splunk:
+  hec:
+    enable: True
+    ssl: False
+    port: 8088
+    token: "${SPLUNK_HEC_TOKEN}"
+  conf:
+    - key: indexes
+      value:
+        directory: /opt/splunk/etc/system/local
+        content:
+          soc_suricata:
+            homePath:  $SPLUNK_DB/soc_suricata/db
+            coldPath:  $SPLUNK_DB/soc_suricata/colddb
+            thawedPath: $SPLUNK_DB/soc_suricata/thaweddb
+            maxTotalDataSizeMB: 5120
+          soc_endpoints:
+            homePath:  $SPLUNK_DB/soc_endpoints/db
+            coldPath:  $SPLUNK_DB/soc_endpoints/colddb
+            thawedPath: $SPLUNK_DB/soc_endpoints/thaweddb
+            maxTotalDataSizeMB: 10240
+          soc_windows:
+            homePath:  $SPLUNK_DB/soc_windows/db
+            coldPath:  $SPLUNK_DB/soc_windows/colddb
+            thawedPath: $SPLUNK_DB/soc_windows/thaweddb
+            maxTotalDataSizeMB: 10240
+          soc_threatintel:
+            homePath:  $SPLUNK_DB/soc_threatintel/db
+            coldPath:  $SPLUNK_DB/soc_threatintel/colddb
+            thawedPath: $SPLUNK_DB/soc_threatintel/thaweddb
+            maxTotalDataSizeMB: 1024

@@ -1,0 +1,61 @@
+# =====================================================================
+#  Reglas Suricata custom para SOC Lab
+#  Rango SID reservado: 9000000-9099999
+# =====================================================================
+
+# --- Reconocimiento (T1046) ---------------------------------------------------
+alert tcp $EXTERNAL_NET any -> $HOME_NET any (msg:"SOC-LAB Nmap TCP SYN scan"; \
+    flags:S,12; threshold: type both, track by_src, count 20, seconds 60; \
+    classtype:attempted-recon; sid:9000001; rev:1;)
+
+alert icmp $EXTERNAL_NET any -> $HOME_NET any (msg:"SOC-LAB ICMP sweep detectado"; \
+    itype:8; threshold: type both, track by_src, count 30, seconds 30; \
+    classtype:attempted-recon; sid:9000002; rev:1;)
+
+# --- Credenciales / brute force (T1110) --------------------------------------
+alert tcp $EXTERNAL_NET any -> $HOME_NET 22 (msg:"SOC-LAB SSH brute force (>5 intentos/min)"; \
+    flow:to_server,established; content:"SSH-"; offset:0; depth:4; \
+    threshold: type both, track by_src, count 5, seconds 60; \
+    classtype:attempted-user; sid:9000010; rev:1;)
+
+alert http any any -> $HOME_NET any (msg:"SOC-LAB HTTP login brute force"; \
+    flow:to_server,established; http.method; content:"POST"; \
+    http.uri; content:"login"; nocase; \
+    threshold: type both, track by_src, count 10, seconds 30; \
+    classtype:attempted-user; sid:9000011; rev:1;)
+
+# --- C2 / beacons (T1071) -----------------------------------------------------
+alert http any any -> $EXTERNAL_NET any (msg:"SOC-LAB User-Agent sospechoso (curl/python)"; \
+    flow:to_server,established; http.user_agent; \
+    pcre:"/^(curl|python-requests|Go-http-client|Wget)/i"; \
+    classtype:trojan-activity; sid:9000020; rev:1;)
+
+alert dns any any -> any any (msg:"SOC-LAB posible túnel DNS (query > 60 chars)"; \
+    dns.query; pcre:"/^[a-z0-9]{60,}\./i"; \
+    classtype:policy-violation; sid:9000021; rev:1;)
+
+# --- Ejecución / payloads (T1059) --------------------------------------------
+alert http $EXTERNAL_NET any -> $HOME_NET any (msg:"SOC-LAB PowerShell EncodedCommand en HTTP"; \
+    http.request_body; content:"powershell"; nocase; \
+    content:"-EncodedCommand"; nocase; distance:0; within:200; \
+    classtype:trojan-activity; sid:9000030; rev:1;)
+
+alert http $EXTERNAL_NET any -> $HOME_NET any (msg:"SOC-LAB Web shell PHP (cmd exec)"; \
+    http.uri; pcre:"/(cmd|shell|exec|system|passthru)=/i"; \
+    classtype:web-application-attack; sid:9000031; rev:1;)
+
+# --- Exfiltración (T1041) -----------------------------------------------------
+alert tcp $HOME_NET any -> $EXTERNAL_NET any (msg:"SOC-LAB Exfiltración: transferencia > 50MB"; \
+    flow:established,to_server; threshold: type limit, track by_src, count 1, seconds 300; \
+    dsize:>1400; classtype:policy-violation; sid:9000040; rev:1;)
+
+# --- SQL Injection (T1190) ----------------------------------------------------
+alert http any any -> $HTTP_SERVERS any (msg:"SOC-LAB SQL Injection UNION SELECT"; \
+    flow:to_server,established; http.uri; content:"union"; nocase; \
+    content:"select"; nocase; distance:0; within:20; \
+    classtype:web-application-attack; sid:9000050; rev:1;)
+
+# --- Movimiento lateral (T1021) -----------------------------------------------
+alert tcp $HOME_NET any -> $HOME_NET 445 (msg:"SOC-LAB SMB session desde múltiples destinos"; \
+    flow:to_server,established; threshold: type both, track by_src, count 10, seconds 60; \
+    classtype:attempted-user; sid:9000060; rev:1;)

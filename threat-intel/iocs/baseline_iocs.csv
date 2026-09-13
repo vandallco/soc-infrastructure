@@ -1,0 +1,11 @@
+value,type,threat_type,category,ioc_confidence,source,first_seen,notes
+185.220.101.7,ip,anonymizer,tor-exit,80,misp-osint,2026-08-01,Tor exit node
+45.155.204.24,ip,malware,cobalt-strike,90,abuse.ch,2026-08-15,C2 confirmado
+193.32.162.157,ip,scanner,mass-scanner,60,misp-osint,2026-08-20,IP ofensiva conocida
+198.51.100.42,ip,test,soc-lab,100,soc-lab-test,2026-09-01,IoC de prueba
+malware-tracker.evil,domain,c2,emotet,85,abuse.ch,2026-07-10,Emotet infrastructure
+badnews.example,domain,phishing,credential-harvest,75,misp-osint,2026-08-05,Kit phishing O365
+tunnel.evil.lab,domain,exfil,dns-tunnel,90,soc-lab-test,2026-09-01,Simulación DNS tunnel
+d41d8cd98f00b204e9800998ecf8427e,md5,malware,generic-trojan,50,virustotal,2026-06-01,Placeholder
+44d88612fea8a8f36de82e1278abb02f,md5,test,eicar,100,eicar,2026-01-01,EICAR test file
+275a021bbfb6489e54d471899f7db9d1663fc695ec2fe2a2c4538aabf651fd0f,sha256,test,eicar,100,eicar,2026-01-01,EICAR SHA256

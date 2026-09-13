@@ -1,0 +1,6 @@
+index=soc_suricata sourcetype=suricata:eve suricata.event_type=http
+| rename suricata.dest_ip as dest_ip, suricata.http.hostname as host_header
+| lookup misp_iocs.csv value AS dest_ip OUTPUT threat_type category ioc_confidence
+| where isnotnull(threat_type)
+| stats count values(host_header) as hosts values(suricata.http.url) as urls by src_ip dest_ip threat_type category ioc_confidence
+| eval mitre_technique="T1071.001", severity="critical"

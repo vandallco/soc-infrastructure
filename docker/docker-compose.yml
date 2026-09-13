@@ -1,0 +1,271 @@
+version: "3.9"
+
+# =====================================================================
+#  SOC Infrastructure Lab
+#  Stack: Splunk (SIEM) + Suricata (NIDS) + TheHive/Cortex (SOAR)
+#         + MISP (CTI) + Filebeat (shipper) + endpoints víctima
+# =====================================================================
+
+networks:
+  soc-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.30.0.0/24
+  victim-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.31.0.0/24
+
+volumes:
+  splunk-var:
+  splunk-etc:
+  cassandra-data:
+  elasticsearch-data:
+  thehive-data:
+  cortex-data:
+  misp-db:
+  misp-files:
+  suricata-logs:
+
+services:
+
+  # -------------------------------------------------------------------
+  #  SIEM — Splunk Enterprise (60-day trial)
+  # -------------------------------------------------------------------
+  splunk:
+    image: splunk/splunk:9.2.1
+    container_name: soc-splunk
+    hostname: splunk
+    restart: unless-stopped
+    environment:
+      SPLUNK_START_ARGS: "--accept-license"
+      SPLUNK_PASSWORD: "${SPLUNK_PASSWORD}"
+      SPLUNK_HEC_TOKEN: "${SPLUNK_HEC_TOKEN}"
+      SPLUNK_APPS_URL: ""
+    ports:
+      - "8000:8000"     # Web UI
+      - "8088:8088"     # HEC (HTTP Event Collector)
+      - "8089:8089"     # Splunkd API
+      - "9997:9997"     # Forwarder receiver
+    volumes:
+      - splunk-var:/opt/splunk/var
+      - splunk-etc:/opt/splunk/etc
+      - ../splunk/apps/soc_app:/opt/splunk/etc/apps/soc_app
+      - ./splunk/default.yml:/tmp/defaults/default.yml:ro
+    networks:
+      - soc-net
+    healthcheck:
+      test: ["CMD", "curl", "-fk", "https://localhost:8089/services/server/info"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+
+  # -------------------------------------------------------------------
+  #  NIDS — Suricata (modo IDS con AF_PACKET)
+  # -------------------------------------------------------------------
+  suricata:
+    image: jasonish/suricata:7.0
+    container_name: soc-suricata
+    restart: unless-stopped
+    network_mode: host      # necesita ver tráfico real
+    cap_add:
+      - NET_ADMIN
+      - SYS_NICE
+      - NET_RAW
+    volumes:
+      - ./suricata/suricata.yaml:/etc/suricata/suricata.yaml:ro
+      - ./suricata/rules:/var/lib/suricata/rules
+      - suricata-logs:/var/log/suricata
+    command: -i eth0 -c /etc/suricata/suricata.yaml
+
+  # -------------------------------------------------------------------
+  #  Shipper — Filebeat (envía logs de Suricata a Splunk vía HEC)
+  # -------------------------------------------------------------------
+  filebeat:
+    image: docker.elastic.co/beats/filebeat:8.13.4
+    container_name: soc-filebeat
+    user: root
+    restart: unless-stopped
+    depends_on:
+      splunk:
+        condition: service_healthy
+    volumes:
+      - ./filebeat/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
+      - suricata-logs:/var/log/suricata:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+    environment:
+      SPLUNK_HEC_URL: "http://splunk:8088"
+      SPLUNK_HEC_TOKEN: "${SPLUNK_HEC_TOKEN}"
+    networks:
+      - soc-net
+
+  # -------------------------------------------------------------------
+  #  SOAR — TheHive 5 + dependencias
+  # -------------------------------------------------------------------
+  cassandra:
+    image: cassandra:4.1
+    container_name: soc-cassandra
+    restart: unless-stopped
+    environment:
+      MAX_HEAP_SIZE: "1G"
+      HEAP_NEWSIZE: "256M"
+      CASSANDRA_CLUSTER_NAME: thp
+    volumes:
+      - cassandra-data:/var/lib/cassandra
+    networks:
+      - soc-net
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.17.20
+    container_name: soc-elasticsearch
+    restart: unless-stopped
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - cluster.name=hive
+      - script.allowed_types=inline
+      - ES_JAVA_OPTS=-Xms1g -Xmx1g
+    ulimits:
+      memlock: { soft: -1, hard: -1 }
+    volumes:
+      - elasticsearch-data:/usr/share/elasticsearch/data
+    networks:
+      - soc-net
+
+  thehive:
+    image: strangebee/thehive:5.2
+    container_name: soc-thehive
+    depends_on: [cassandra, elasticsearch, cortex]
+    restart: unless-stopped
+    ports:
+      - "9000:9000"
+    environment:
+      - JVM_OPTS=-Xms1024M -Xmx1024M
+    command:
+      - --secret
+      - "${THEHIVE_SECRET}"
+      - "--cql-hostnames"
+      - "cassandra"
+      - "--index-backend"
+      - "elasticsearch"
+      - "--es-hostnames"
+      - "elasticsearch"
+      - "--s3-endpoint"
+      - "http://minio:9002"
+      - "--cortex-hostnames"
+      - "cortex"
+      - "--cortex-keys"
+      - "${CORTEX_API_KEY}"
+    volumes:
+      - thehive-data:/opt/thp/thehive/data
+      - ./thehive/application.conf:/etc/thehive/application.conf:ro
+    networks:
+      - soc-net
+
+  cortex:
+    image: thehiveproject/cortex:3.1.7
+    container_name: soc-cortex
+    depends_on: [elasticsearch]
+    restart: unless-stopped
+    ports:
+      - "9001:9001"
+    environment:
+      - JOB_DIRECTORY=/tmp/cortex-jobs
+    volumes:
+      - cortex-data:/opt/cortex/data
+      - ./cortex/application.conf:/etc/cortex/application.conf:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - soc-net
+
+  # -------------------------------------------------------------------
+  #  CTI — MISP (Threat Intelligence)
+  # -------------------------------------------------------------------
+  misp-db:
+    image: mariadb:10.11
+    container_name: soc-misp-db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: "${MISP_MYSQL_ROOT_PASSWORD}"
+      MYSQL_DATABASE: misp
+      MYSQL_USER: misp
+      MYSQL_PASSWORD: "${MISP_MYSQL_PASSWORD}"
+    volumes:
+      - misp-db:/var/lib/mysql
+    networks:
+      - soc-net
+
+  misp-redis:
+    image: redis:7-alpine
+    container_name: soc-misp-redis
+    restart: unless-stopped
+    networks:
+      - soc-net
+
+  misp:
+    image: coolacid/misp-docker:core-latest
+    container_name: soc-misp
+    depends_on: [misp-db, misp-redis]
+    restart: unless-stopped
+    ports:
+      - "8443:443"
+    environment:
+      HOSTNAME: "https://localhost:8443"
+      REDIS_FQDN: misp-redis
+      INIT: "true"
+      CRON_USER_ID: 1
+      DISIPV6: "true"
+      MYSQL_HOST: misp-db
+      MYSQL_USER: misp
+      MYSQL_PASSWORD: "${MISP_MYSQL_PASSWORD}"
+      MYSQL_DATABASE: misp
+      ADMIN_EMAIL: "${MISP_ADMIN_EMAIL}"
+      ADMIN_PASSWORD: "${MISP_ADMIN_PASSWORD}"
+      ADMIN_KEY: "${MISP_ADMIN_KEY}"
+    volumes:
+      - misp-files:/var/www/MISP/app/files
+    networks:
+      - soc-net
+
+  misp-modules:
+    image: coolacid/misp-docker:modules-latest
+    container_name: soc-misp-modules
+    restart: unless-stopped
+    environment:
+      REDIS_BACKEND: misp-redis
+    depends_on: [misp-redis, misp-db]
+    networks:
+      - soc-net
+
+  # -------------------------------------------------------------------
+  #  Endpoints víctima (generación de telemetría)
+  # -------------------------------------------------------------------
+  victim-linux:
+    image: ubuntu:22.04
+    container_name: soc-victim-linux
+    hostname: victim-linux
+    restart: unless-stopped
+    tty: true
+    command: >
+      bash -c "apt-get update && apt-get install -y openssh-server rsyslog curl &&
+               mkdir -p /run/sshd &&
+               echo 'root:VulnerableP@ss1' | chpasswd &&
+               sed -i 's/#PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config &&
+               service rsyslog start &&
+               /usr/sbin/sshd -D"
+    volumes:
+      - ./victims/linux/rsyslog.conf:/etc/rsyslog.d/99-splunk.conf:ro
+    networks:
+      - victim-net
+      - soc-net
+
+  victim-web:
+    image: vulnerables/web-dvwa:latest
+    container_name: soc-victim-dvwa
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    networks:
+      - victim-net

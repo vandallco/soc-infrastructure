@@ -1,0 +1,106 @@
+<dashboard version="1.1" theme="dark">
+  <label>SOC — Panel de Operaciones</label>
+  <description>Visión general del SOC: alertas, IoCs, salud de detecciones y KPIs.</description>
+
+  <row>
+    <panel>
+      <title>Alertas por severidad (últimas 24h)</title>
+      <chart>
+        <search>
+          <query>`soc_indexes` sourcetype=suricata:eve suricata.event_type=alert
+| eval sev=case(suricata.alert.severity=1,"critical",suricata.alert.severity=2,"high",suricata.alert.severity=3,"medium",true(),"low")
+| timechart span=1h count by sev</query>
+          <earliest>-24h</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="charting.chart">column</option>
+        <option name="charting.chart.stackMode">stacked</option>
+      </chart>
+    </panel>
+
+    <panel>
+      <title>Top 10 firmas Suricata</title>
+      <chart>
+        <search>
+          <query>index=soc_suricata suricata.event_type=alert
+| stats count by suricata.alert.signature
+| sort - count | head 10</query>
+          <earliest>-24h</earliest><latest>now</latest>
+        </search>
+        <option name="charting.chart">bar</option>
+      </chart>
+    </panel>
+  </row>
+
+  <row>
+    <panel>
+      <title>Autenticaciones fallidas por IP (24h)</title>
+      <chart>
+        <search>
+          <query>index=soc_endpoints sourcetype=linux:auth status=Failed
+| stats count by src_ip | sort - count | head 15</query>
+          <earliest>-24h</earliest><latest>now</latest>
+        </search>
+        <option name="charting.chart">bar</option>
+      </chart>
+    </panel>
+
+    <panel>
+      <title>IoCs MISP alcanzados</title>
+      <table>
+        <search>
+          <query>index=soc_suricata suricata.event_type=http
+| rename suricata.dest_ip as dest_ip
+| lookup misp_iocs.csv value AS dest_ip OUTPUT threat_type category
+| where isnotnull(threat_type)
+| stats count values(suricata.http.hostname) as hosts by dest_ip threat_type category
+| sort - count</query>
+          <earliest>-24h</earliest><latest>now</latest>
+        </search>
+      </table>
+    </panel>
+  </row>
+
+  <row>
+    <panel>
+      <title>Distribución MITRE ATT&amp;CK</title>
+      <chart>
+        <search>
+          <query>index=_audit action=search savedsearch_name="SOC - *"
+| stats count by savedsearch_name
+| rex field=savedsearch_name "UC-(?&lt;uc&gt;\d+)"
+| lookup mitre_attack.csv uc_id AS uc OUTPUT tactic technique_name
+| stats sum(count) as alertas by tactic</query>
+          <earliest>-24h</earliest><latest>now</latest>
+        </search>
+        <option name="charting.chart">pie</option>
+      </chart>
+    </panel>
+
+    <panel>
+      <title>Health — EPS por índice</title>
+      <chart>
+        <search>
+          <query>| tstats count where `soc_indexes` by index _time span=5m
+| eval eps=count/300 | timechart span=5m avg(eps) by index</query>
+          <earliest>-1h</earliest><latest>now</latest>
+        </search>
+        <option name="charting.chart">line</option>
+      </chart>
+    </panel>
+  </row>
+
+  <row>
+    <panel>
+      <title>Últimas 20 alertas SOC</title>
+      <table>
+        <search>
+          <query>index=_internal source=*savedsearches.log action="alert fired" savedsearch_name="SOC - *"
+| table _time savedsearch_name result_count trigger_time_rendered
+| sort - _time | head 20</query>
+          <earliest>-24h</earliest><latest>now</latest>
+        </search>
+      </table>
+    </panel>
+  </row>
+</dashboard>

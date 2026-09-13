@@ -1,0 +1,8 @@
+value,type,threat_type,category,ioc_confidence,source,first_seen
+185.220.101.7,ip,c2,tor-exit,80,misp-osint,2026-08-01
+45.155.204.24,ip,malware,cobalt-strike,90,misp-osint,2026-08-15
+193.32.162.157,ip,scanner,mass-scanner,60,misp-osint,2026-08-20
+malware-tracker.evil,domain,c2,emotet,85,abuse.ch,2026-07-10
+badnews.example,domain,phishing,credential-harvest,75,misp-osint,2026-08-05
+d41d8cd98f00b204e9800998ecf8427e,md5,malware,generic-trojan,50,virustotal,2026-06-01
+44d88612fea8a8f36de82e1278abb02f,md5,malware,eicar-test,100,eicar,2026-01-01

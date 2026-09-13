@@ -1,0 +1,58 @@
+# Environment
+docker/.env
+*.env
+!*.env.example
+
+# Splunk data
+docker/splunk/var/
+docker/splunk/etc/passwd
+docker/splunk/etc/auth/
+
+# Elastic/OpenSearch data
+docker/*/data/
+docker/*/logs/
+
+# TheHive/Cortex
+docker/thehive/data/
+docker/cortex/data/
+docker/cassandra/
+docker/elasticsearch/
+
+# MISP
+docker/misp/mysql/
+docker/misp/server-configs/
+
+# Suricata logs
+docker/suricata/logs/
+
+# Certs
+*.key
+*.pem
+*.crt
+!docker/**/example.*
+
+# Backups y dumps
+*.bak
+*.dump
+*.sql
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editores
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs de prueba
+scripts/output/
+scripts/*.log
+
+# Python cache (si se añaden scripts)
+__pycache__/
+*.pyc
+.venv/

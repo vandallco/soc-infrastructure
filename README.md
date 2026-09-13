@@ -55,32 +55,30 @@ Ver diagrama detallado en [docs/diagrams/architecture.md](docs/diagrams/architec
 ## Despliegue rápido
 
 **Requisitos**
-- Docker Engine 24+ y Docker Compose v2
+- Docker Engine 24+ y Docker Compose v2 (Docker Desktop en Windows/Mac)
 - 16 GB RAM mínimo (32 GB recomendado)
 - 60 GB disco
-- Linux/WSL2/macOS (Windows nativo funciona con ajustes)
 
-**Pasos**
+### Windows — un click
+
+```
+scripts\Install-DesktopShortcut.bat   (doble click, una sola vez)
+```
+
+Crea dos accesos en el Escritorio:
+- **SOC Lab (Start)** — abre Docker, levanta el stack, valida salud, abre Splunk en el navegador.
+- **SOC Lab (Stop)** — detiene los contenedores (preserva volúmenes).
+
+El launcher genera `.env` con credenciales aleatorias si no existe, y auto-repara el bug de sockets huérfanos de Docker Desktop.
+
+### Linux/macOS — CLI
 
 ```bash
-# 1. Clonar repo
 git clone https://github.com/<tu-usuario>/soc-infrastructure.git
 cd soc-infrastructure
-
-# 2. Preparar variables de entorno
-cp docker/.env.example docker/.env
-# Editar contraseñas y tokens en docker/.env
-
-# 3. Ajuste de límites de kernel (obligatorio para Elasticsearch/MISP)
-sudo sysctl -w vm.max_map_count=524288
-sudo sysctl -w fs.file-max=131072
-
-# 4. Levantar el stack
-cd docker
-docker compose up -d
-
-# 5. Verificar salud
-../scripts/health-check.sh
+bash scripts/setup.sh          # genera .env con secretos
+bash scripts/deploy.sh         # levanta el stack
+bash scripts/health-check.sh   # verifica endpoints
 ```
 
 Guía completa en [docs/deployment-guide.md](docs/deployment-guide.md).

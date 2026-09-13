@@ -134,7 +134,9 @@ soc-infrastructure/
 
 ## Manual de operaciones SOC
 
-- [Manual del analista](docs/soc-operations-manual.md)
+- [Manual de uso del laboratorio](docs/user-manual.md) — cómo usar cada herramienta, qué anotar, flujos end-to-end
+- [Manual del analista](docs/soc-operations-manual.md) — SOPs formales, KPIs, escalados
+- [Integración de IA en SOC L1](docs/ai-integration.md) — casos de uso, arquitecturas, playbook de implementación
 - [Guía de despliegue](docs/deployment-guide.md)
 - [Mapeo MITRE ATT&CK](docs/mitre-attack-mapping.md)
 - [Reportes de incidentes simulados](docs/incident-reports/)

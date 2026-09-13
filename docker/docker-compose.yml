@@ -1,5 +1,3 @@
-version: "3.9"
-
 # =====================================================================
 #  SOC Infrastructure Lab
 #  Stack: Splunk (SIEM) + Suricata (NIDS) + TheHive/Cortex (SOAR)
@@ -69,32 +67,34 @@ services:
     image: jasonish/suricata:7.0
     container_name: soc-suricata
     restart: unless-stopped
-    network_mode: host      # necesita ver tráfico real
+    # host networking solo funciona en Linux nativo; en Docker Desktop se usa la
+    # red de víctimas (víctim-net) y Suricata olfatea el tráfico de ese segmento.
     cap_add:
       - NET_ADMIN
       - SYS_NICE
       - NET_RAW
+    networks:
+      - victim-net
+      - soc-net
     volumes:
-      - ./suricata/suricata.yaml:/etc/suricata/suricata.yaml:ro
+      - ./suricata/suricata.yaml:/etc/suricata/suricata.yaml
       - ./suricata/rules:/var/lib/suricata/rules
       - suricata-logs:/var/log/suricata
     command: -i eth0 -c /etc/suricata/suricata.yaml
 
   # -------------------------------------------------------------------
-  #  Shipper — Filebeat (envía logs de Suricata a Splunk vía HEC)
+  #  Shipper — Vector (envía logs de Suricata a Splunk vía HEC)
   # -------------------------------------------------------------------
-  filebeat:
-    image: docker.elastic.co/beats/filebeat:8.13.4
-    container_name: soc-filebeat
-    user: root
+  vector:
+    image: timberio/vector:0.38.0-alpine
+    container_name: soc-vector
     restart: unless-stopped
+    command: ["--config", "/etc/vector/vector.toml"]
     depends_on:
-      splunk:
-        condition: service_healthy
+      - splunk
     volumes:
-      - ./filebeat/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
+      - ./vector/vector.toml:/etc/vector/vector.toml:ro
       - suricata-logs:/var/log/suricata:ro
-      - /var/lib/docker/containers:/var/lib/docker/containers:ro
     environment:
       SPLUNK_HEC_URL: "http://splunk:8088"
       SPLUNK_HEC_TOKEN: "${SPLUNK_HEC_TOKEN}"
@@ -250,10 +250,10 @@ services:
     tty: true
     command: >
       bash -c "apt-get update && apt-get install -y openssh-server rsyslog curl &&
-               mkdir -p /run/sshd &&
+               mkdir -p /run/sshd /var/spool/rsyslog &&
                echo 'root:VulnerableP@ss1' | chpasswd &&
                sed -i 's/#PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config &&
-               service rsyslog start &&
+               /usr/sbin/rsyslogd &&
                /usr/sbin/sshd -D"
     volumes:
       - ./victims/linux/rsyslog.conf:/etc/rsyslog.d/99-splunk.conf:ro

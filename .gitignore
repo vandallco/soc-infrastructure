@@ -51,6 +51,7 @@ desktop.ini
 # Logs de prueba
 scripts/output/
 scripts/*.log
+docker/*.log
 
 # Python cache (si se añaden scripts)
 __pycache__/

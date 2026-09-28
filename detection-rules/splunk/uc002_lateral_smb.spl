@@ -1,0 +1,5 @@
+index=soc_windows source="WinEventLog:Security" EventCode=4624 logon_type=3
+| bin _time span=10m
+| stats dc(host) as targets values(host) as target_list by _time src_ip target_user
+| where targets >= 5
+| eval mitre_technique="T1021.002", severity="high"

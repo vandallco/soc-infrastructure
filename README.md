@@ -1,5 +1,7 @@
 # SOC Infrastructure Lab
 
+[![validate](https://github.com/vandallco/soc-infrastructure/actions/workflows/validate.yml/badge.svg)](https://github.com/vandallco/soc-infrastructure/actions/workflows/validate.yml)
+
 Laboratorio completo de Security Operations Center (SOC) construido con herramientas open source y Splunk como SIEM central. Desplegable en Docker Compose, orientado a fines académicos, entrenamiento de analistas Blue Team y demostración de casos de uso alineados a MITRE ATT&CK.
 
 ---
@@ -74,7 +76,7 @@ El launcher genera `.env` con credenciales aleatorias si no existe, y auto-repar
 ### Linux/macOS — CLI
 
 ```bash
-git clone https://github.com/<tu-usuario>/soc-infrastructure.git
+git clone https://github.com/vandallco/soc-infrastructure.git
 cd soc-infrastructure
 bash scripts/setup.sh          # genera .env con secretos
 bash scripts/deploy.sh         # levanta el stack
@@ -111,6 +113,18 @@ Una vez desplegado:
 
 Fichas detalladas en [use-cases/](use-cases/).
 
+### Reglas de detección
+
+Cada caso de uso está implementado en tres formatos:
+
+| Formato | Dónde | Cantidad |
+|---------|-------|----------|
+| Splunk SPL (correlation searches) | [splunk/apps/soc_app/default/savedsearches.conf](splunk/apps/soc_app/default/savedsearches.conf) y copias standalone en [detection-rules/splunk/](detection-rules/splunk/) | 8 |
+| Sigma (portable a otros SIEMs, con correlaciones v2) | [detection-rules/sigma/](detection-rules/sigma/) | 8 |
+| Suricata (firmas de red) | [docker/suricata/rules/custom.rules](docker/suricata/rules/custom.rules) | 11 |
+
+El workflow [validate.yml](.github/workflows/validate.yml) valida en cada push las reglas Sigma (`sigma check` y conversión a SPL), las firmas Suricata (`suricata -T`) y el `docker-compose.yml`.
+
 ---
 
 ## Estructura del repositorio
@@ -137,7 +151,7 @@ soc-infrastructure/
 - [Integración de IA en SOC L1](docs/ai-integration.md) — casos de uso, arquitecturas, playbook de implementación
 - [Guía de despliegue](docs/deployment-guide.md)
 - [Mapeo MITRE ATT&CK](docs/mitre-attack-mapping.md)
-- [Reportes de incidentes simulados](docs/incident-reports/)
+- [Reportes de incidentes simulados](docs/incident-reports/) (ejercicios de entrenamiento con datos ficticios)
 
 ---
 
@@ -145,7 +159,8 @@ soc-infrastructure/
 
 - [x] Splunk + Suricata + TheHive + Cortex + MISP
 - [x] 8 casos de uso mapeados a MITRE
-- [x] Playbooks para 4 escenarios
+- [x] Playbooks para 5 escenarios
+- [x] Reglas Sigma para los 8 casos de uso + validación en CI
 - [ ] Integración Wazuh HIDS
 - [ ] Feed automatizado MISP → Splunk lookup
 - [ ] Dashboards ejecutivos (KPI SOC)

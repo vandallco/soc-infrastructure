@@ -1,11 +1,11 @@
-title: SSH Brute Force (SOC Lab UC-001)
+title: SSH Failed Password
 id: 9f2b3d1a-1111-4c4c-8888-000000000001
+name: soc_lab_ssh_failed_password
 status: stable
-description: Detects 10+ failed SSH auth attempts from the same source in 5 minutes.
+description: Failed SSH password attempt (base event for UC-001).
 author: SOC Lab
-date: 2026/09/01
-references:
-  - https://attack.mitre.org/techniques/T1110/001/
+date: 2026-09-01
+modified: 2026-09-28
 logsource:
   product: linux
   service: auth
@@ -13,12 +13,32 @@ detection:
   selection:
     program: sshd
     message|contains: 'Failed password'
-  timeframe: 5m
-  condition: selection | count() by src_ip > 9
-level: high
-tags:
-  - attack.credential_access
-  - attack.t1110.001
+  condition: selection
+falsepositives:
+  - Users forgetting their password
+level: low
+---
+title: SSH Brute Force (SOC Lab UC-001)
+id: 64a46739-b8a0-4bf5-bd99-e8c670a93830
+status: stable
+description: Detects 10+ failed SSH authentication attempts from the same source in 5 minutes.
+author: SOC Lab
+date: 2026-09-28
+references:
+  - https://attack.mitre.org/techniques/T1110/001/
+correlation:
+  type: event_count
+  rules:
+    - soc_lab_ssh_failed_password
+  group-by:
+    - src_ip
+  timespan: 5m
+  condition:
+    gte: 10
 falsepositives:
   - Vulnerability scanners
-  - Users forgetting password
+  - Misconfigured automation with stale credentials
+level: high
+tags:
+  - attack.credential-access
+  - attack.t1110.001

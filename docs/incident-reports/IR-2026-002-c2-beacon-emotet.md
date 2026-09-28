@@ -1,5 +1,7 @@
 # Reporte de Incidente IR-2026-002
 
+> **Incidente simulado.** Reporte redactado como ejercicio de entrenamiento sobre el laboratorio. IPs, usuarios, casos y tiempos son ficticios o de prueba.
+
 | Campo | Valor |
 |-------|-------|
 | ID | IR-2026-002 |

@@ -1,0 +1,5 @@
+index=soc_windows sourcetype=sysmon:operational EventCode=1
+("powershell.exe" OR "pwsh.exe")
+("-EncodedCommand" OR "-enc " OR "FromBase64String" OR "IEX(" OR "Invoke-Expression")
+| eval mitre_technique="T1059.001", severity="high"
+| table _time host user image cmdline mitre_technique

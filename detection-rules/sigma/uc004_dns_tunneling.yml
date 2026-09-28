@@ -1,0 +1,44 @@
+title: Long DNS Query
+id: 5c2099ef-f83c-418f-a644-5a9a715a1a35
+name: soc_lab_long_dns_query
+status: stable
+description: DNS query name longer than 60 characters, base event for UC-004.
+author: SOC Lab
+date: 2026-09-28
+logsource:
+  category: dns
+detection:
+  selection:
+    query|re: '^.{61,}$'
+  condition: selection
+falsepositives:
+  - CDN and cloud service hostnames
+  - Antivirus reputation lookups encoded in DNS
+level: low
+---
+title: DNS Tunneling / Exfiltration (SOC Lab UC-004)
+id: 9b5dc9bb-37a3-4193-a74e-901324a19d67
+status: stable
+description: More than 20 abnormally long DNS queries from the same source in 15 minutes (iodine, dnscat2, dns2tcp).
+author: SOC Lab
+date: 2026-09-28
+references:
+  - https://attack.mitre.org/techniques/T1048/003/
+  - https://attack.mitre.org/techniques/T1071/004/
+correlation:
+  type: event_count
+  rules:
+    - soc_lab_long_dns_query
+  group-by:
+    - src_ip
+  timespan: 15m
+  condition:
+    gt: 20
+falsepositives:
+  - Security products that use DNS for telemetry
+level: high
+tags:
+  - attack.exfiltration
+  - attack.t1048.003
+  - attack.command-and-control
+  - attack.t1071.004

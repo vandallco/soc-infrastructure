@@ -1,0 +1,27 @@
+title: Connection to MISP C2 IoC (SOC Lab UC-007)
+id: 31ced242-f7c1-4dc5-bcd9-2c5ec2816853
+status: stable
+description: |
+  Outbound connection to an IP flagged as C2/malware in the MISP feed.
+  The IoC list below mirrors threat-intel/iocs/baseline_iocs.csv; in Splunk the
+  equivalent search uses the misp_iocs.csv lookup, which is refreshed from MISP.
+author: SOC Lab
+date: 2026-09-28
+references:
+  - https://attack.mitre.org/techniques/T1071/001/
+logsource:
+  category: network_connection
+detection:
+  selection:
+    Initiated: 'true'
+    DestinationIp:
+      - '185.220.101.7'    # tor-exit / c2
+      - '45.155.204.24'    # cobalt-strike
+      - '198.51.100.42'    # IoC de prueba del laboratorio
+  condition: selection
+falsepositives:
+  - Stale IoCs (IPs reassigned to legitimate services)
+level: critical
+tags:
+  - attack.command-and-control
+  - attack.t1071.001

@@ -22,7 +22,7 @@
 ## 1. Clonar el repositorio
 
 ```bash
-git clone https://github.com/<tu-usuario>/soc-infrastructure.git
+git clone https://github.com/vandallco/soc-infrastructure.git
 cd soc-infrastructure
 ```
 

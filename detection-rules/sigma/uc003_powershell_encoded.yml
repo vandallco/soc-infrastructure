@@ -3,7 +3,7 @@ id: 9f2b3d1a-1111-4c4c-8888-000000000003
 status: stable
 description: Detects execution of powershell.exe / pwsh.exe with encoded / base64 command.
 author: SOC Lab
-date: 2026/09/01
+date: 2026-09-01
 references:
   - https://attack.mitre.org/techniques/T1059/001/
 logsource:

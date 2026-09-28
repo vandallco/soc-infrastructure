@@ -1,0 +1,45 @@
+title: Firewall Connection Attempt
+id: 71be57a7-b6df-4b5d-a66e-43ab3fcdf9ac
+name: soc_lab_firewall_connection
+status: stable
+description: Connection attempt logged by the firewall, base event for UC-008.
+author: SOC Lab
+date: 2026-09-28
+logsource:
+  category: firewall
+detection:
+  selection:
+    action:
+      - 'deny'
+      - 'drop'
+      - 'reject'
+  condition: selection
+falsepositives:
+  - Normal blocked traffic
+level: informational
+---
+title: Internal Port Scan (SOC Lab UC-008)
+id: fccb0c8a-ae86-47fe-bae7-da0bc5e00a51
+status: stable
+description: A single source touches 15 or more distinct destination ports in 15 minutes (Nmap-style discovery).
+author: SOC Lab
+date: 2026-09-28
+references:
+  - https://attack.mitre.org/techniques/T1046/
+correlation:
+  type: value_count
+  rules:
+    - soc_lab_firewall_connection
+  group-by:
+    - src_ip
+  timespan: 15m
+  condition:
+    field: dst_port
+    gte: 15
+falsepositives:
+  - Authorized vulnerability scanners (allowlist their IPs)
+  - Network monitoring systems
+level: medium
+tags:
+  - attack.discovery
+  - attack.t1046

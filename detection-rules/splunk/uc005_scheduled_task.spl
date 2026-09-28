@@ -1,0 +1,3 @@
+index=soc_windows source="WinEventLog:Security" (EventCode=4698 OR EventCode=4702)
+| eval mitre_technique="T1053.005", severity="medium"
+| table _time host user TaskName cmdline mitre_technique

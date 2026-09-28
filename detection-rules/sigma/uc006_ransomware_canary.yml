@@ -1,0 +1,42 @@
+title: Canary File Modified
+id: 9df0a1f1-ee6d-45b3-8238-f90028e12783
+name: soc_lab_canary_file_event
+status: stable
+description: A process wrote to a decoy (canary) file, base event for UC-006.
+author: SOC Lab
+date: 2026-09-28
+logsource:
+  product: windows
+  category: file_event
+detection:
+  selection:
+    TargetFilename|contains: '\canary\'
+  condition: selection
+falsepositives:
+  - Backup software touching the canary directory
+level: medium
+---
+title: Ransomware Activity on Canary Files (SOC Lab UC-006)
+id: 11388474-ed03-4683-9be1-bbc561e55b02
+status: stable
+description: More than 3 canary file modifications on the same host by the same user in 10 minutes, typical of ransomware encryption loops.
+author: SOC Lab
+date: 2026-09-28
+references:
+  - https://attack.mitre.org/techniques/T1486/
+correlation:
+  type: event_count
+  rules:
+    - soc_lab_canary_file_event
+  group-by:
+    - Computer
+    - User
+  timespan: 10m
+  condition:
+    gt: 3
+falsepositives:
+  - Backup or sync software (exclude by process path)
+level: critical
+tags:
+  - attack.impact
+  - attack.t1486

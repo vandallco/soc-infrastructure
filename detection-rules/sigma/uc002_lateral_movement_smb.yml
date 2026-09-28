@@ -1,0 +1,47 @@
+title: Windows Network Logon (Type 3)
+id: 7c7dad18-7d73-45ab-aa33-270841a49f7b
+name: soc_lab_network_logon
+status: stable
+description: Successful network logon (SMB/NTLM), base event for UC-002.
+author: SOC Lab
+date: 2026-09-28
+logsource:
+  product: windows
+  service: security
+detection:
+  selection:
+    EventID: 4624
+    LogonType: 3
+  filter_machine_accounts:
+    TargetUserName|endswith: '$'
+  condition: selection and not filter_machine_accounts
+falsepositives:
+  - Normal file share access
+level: informational
+---
+title: Lateral Movement via SMB (SOC Lab UC-002)
+id: e10eb5a5-cbcd-41c5-a1dc-ccb24f5fa7ea
+status: stable
+description: Same user and source IP authenticating over the network to 5 or more distinct hosts in 10 minutes (PsExec, wmiexec, CrackMapExec).
+author: SOC Lab
+date: 2026-09-28
+references:
+  - https://attack.mitre.org/techniques/T1021/002/
+correlation:
+  type: value_count
+  rules:
+    - soc_lab_network_logon
+  group-by:
+    - IpAddress
+    - TargetUserName
+  timespan: 10m
+  condition:
+    field: Computer
+    gte: 5
+falsepositives:
+  - Administrators or deployment tools pushing software to many hosts
+  - Vulnerability scanners with domain credentials
+level: high
+tags:
+  - attack.lateral-movement
+  - attack.t1021.002

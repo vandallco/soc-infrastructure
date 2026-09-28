@@ -1,0 +1,5 @@
+index=soc_suricata sourcetype=suricata:eve suricata.event_type=alert
+suricata.alert.signature_id=9000001
+| stats count dc(suricata.dest_port) as ports by src_ip
+| where ports >= 15
+| eval mitre_technique="T1046", severity="medium"

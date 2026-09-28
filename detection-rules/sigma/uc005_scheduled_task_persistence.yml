@@ -1,0 +1,25 @@
+title: Scheduled Task Created or Updated (SOC Lab UC-005)
+id: 015229be-adf3-4126-b30d-e665c987adf5
+status: stable
+description: Detects creation (4698) or modification (4702) of a scheduled task, a common persistence technique.
+author: SOC Lab
+date: 2026-09-28
+references:
+  - https://attack.mitre.org/techniques/T1053/005/
+logsource:
+  product: windows
+  service: security
+detection:
+  selection:
+    EventID:
+      - 4698
+      - 4702
+  condition: selection
+falsepositives:
+  - Software installers and updaters
+  - Legitimate administrative tasks (baseline known task names)
+level: medium
+tags:
+  - attack.persistence
+  - attack.execution
+  - attack.t1053.005

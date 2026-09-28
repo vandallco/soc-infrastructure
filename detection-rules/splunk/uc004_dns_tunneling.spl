@@ -1,0 +1,6 @@
+index=soc_suricata sourcetype=suricata:eve suricata.event_type=dns
+| eval qlen=len('suricata.dns.rrname')
+| where qlen > 60
+| stats count avg(qlen) as avg_len dc(suricata.dns.rrname) as unique_queries values(suricata.dns.rrname) as queries by src_ip
+| where count > 20
+| eval mitre_technique="T1048.003", severity="high"

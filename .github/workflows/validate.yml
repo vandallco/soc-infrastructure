@@ -1,0 +1,39 @@
+name: validate
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  sigma:
+    name: Sigma rules
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install sigma-cli pysigma-backend-splunk
+      - name: Check rules
+        run: sigma check detection-rules/sigma/
+      - name: Convert to Splunk SPL
+        run: sigma convert -t splunk --without-pipeline detection-rules/sigma/
+
+  suricata:
+    name: Suricata rules
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y suricata
+      - name: Test custom rules
+        run: sudo suricata -T -S docker/suricata/rules/custom.rules -l /tmp
+
+  compose:
+    name: Docker Compose
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate compose file
+        run: |
+          cp docker/.env.example docker/.env
+          docker compose -f docker/docker-compose.yml config -q
